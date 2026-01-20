@@ -2146,7 +2146,7 @@ and administrative changes. Critical for accurate district-level analysis:
         story.append(Spacer(1, 0.08*inch))
     
         prediction_desc = """
-        Predicts how many youth will turn 18 without updated biometrics, creating authentication access challenges:
+        Identifies districts with elevated risk of authentication challenges due to incomplete youth biometric updates:
         """
         story.append(Paragraph(prediction_desc, styles['BodyJustified']))
         story.append(Spacer(1, 0.06*inch))
