@@ -83,13 +83,8 @@ def calculate_district_readiness(df):
         0
     )
     
-    # Alternative metric: Youth bio update rate
-    # Compare youth bio updates to youth enrollments
-    district_agg['youth_update_rate'] = np.where(
-        district_agg['age_5_17'] > 0,
-        (district_agg['bio_age_5_17'] / district_agg['age_5_17']),
-        0
-    )
+    
+    
     
     # Classify readiness
     # Handle case where MODERATE_READINESS == CRITICAL_READINESS
@@ -148,10 +143,7 @@ def calculate_state_readiness(district_agg):
         state_agg['bio_age_5_17'] / state_agg['total_bio_updates']
     ) * 100
     
-    # Calculate youth update rate
-    state_agg['youth_update_rate'] = (
-        state_agg['bio_age_5_17'] / state_agg['age_5_17']
-    )
+    
     
     # Sort by readiness score
     state_agg = state_agg.sort_values('readiness_score', ascending=False)
@@ -170,51 +162,64 @@ def calculate_state_readiness(district_agg):
 
 def predict_authentication_failures(district_agg):
     """
-    Predict future authentication failures based on readiness scores
+    Identify at-risk districts based on readiness scores
+    Districts with low youth bio update activity are flagged for intervention
     """
-    print(f"\n🔮 Predicting authentication failures...")
+    print(f"\n🔮 Identifying at-risk districts based on readiness scores...")
     
     # National statistics
     total_youth_bio = district_agg['bio_age_5_17'].sum()
+    total_adult_bio = district_agg['bio_age_17_'].sum()
+    total_bio = total_youth_bio + total_adult_bio
     total_youth_enrollments = district_agg['age_5_17'].sum()
     
-    # Assume population distribution
-    # Typical age distribution: each single age (5, 6, 7... 17) has ~1/13 of total
-    # Age 17 youth = 1/13 of total 5-17 population
-    age_17_population = total_youth_enrollments / 13
+    # National youth bio update percentage
+    national_youth_bio_pct = (total_youth_bio / total_bio * 100) if total_bio > 0 else 0
     
-    # Youth bio update rate
-    youth_update_rate = total_youth_bio / total_youth_enrollments if total_youth_enrollments > 0 else 0
+    print(f"\n  National Benchmarks:")
+    print(f"    Total youth (5-17) enrollments: {total_youth_enrollments:,.0f}")
+    print(f"    Total youth bio updates: {total_youth_bio:,.0f}")
+    print(f"    Total adult bio updates: {total_adult_bio:,.0f}")
+    print(f"    Youth % of all bio updates: {national_youth_bio_pct:.1f}%")
+    print(f"    National median readiness score: {district_agg['readiness_score'].median():.1f}%")
     
-    # Predict: How many age 17 youth will turn 18 without biometric update?
-    # Assume: Those who haven't updated in past 12 months will face authentication issues
-    predicted_failures = age_17_population * (1 - youth_update_rate)
+    # Calculate readiness gap for each district
+    # Gap = How much below the national median is this district?
+    national_median = district_agg['readiness_score'].median()
     
-    print(f"\n  Prediction Model:")
-    print(f"    Total youth (5-17) in dataset: {total_youth_enrollments:,.0f}")
-    print(f"    Estimated age 17 population: {age_17_population:,.0f}")
-    print(f"    Youth biometric update rate: {youth_update_rate:.1%}")
-    print(f"    Predicted authentication failures (next 12 months): {predicted_failures:,.0f}")
-    
-    # District-level predictions
-    district_agg['predicted_failures_per_year'] = (
-        (district_agg['age_5_17'] / 13) * (1 - district_agg['youth_update_rate'])
+    district_agg['readiness_gap'] = np.maximum(
+        0,
+        national_median - district_agg['readiness_score']
     )
     
-    # Identify high-risk districts
+    # Estimate youth at risk
+    # Districts with large readiness gaps have more youth potentially at risk
+    # Assumption: Readiness gap indicates proportion of youth who may not be updating
+    district_agg['estimated_at_risk_youth'] = (
+        district_agg['age_5_17'] * (district_agg['readiness_gap'] / 100)
+    ).round(0).astype(int)
+    
+    # Total estimated at-risk youth nationally
+    total_at_risk = district_agg['estimated_at_risk_youth'].sum()
+    
+    print(f"\n  Risk Assessment:")
+    print(f"    Districts below national median: {len(district_agg[district_agg['readiness_gap'] > 0])}")
+    print(f"    Estimated at-risk youth (nationally): {total_at_risk:,.0f}")
+    
+    # Identify high-risk districts (below critical threshold)
     high_risk_districts = district_agg[
         district_agg['readiness_score'] < CRITICAL_READINESS
-    ].sort_values('predicted_failures_per_year', ascending=False)
+    ].sort_values('estimated_at_risk_youth', ascending=False)
     
-    print(f"\n  High-Risk Districts (Readiness < {CRITICAL_READINESS}):")
+    print(f"\n  High-Risk Districts (Readiness < {CRITICAL_READINESS}%):")
     print(f"    Count: {len(high_risk_districts)}")
     if len(high_risk_districts) > 0:
-        print(f"    Total predicted failures: {high_risk_districts['predicted_failures_per_year'].sum():,.0f}")
-        print(f"\n    Top 5 districts by predicted failures:")
+        print(f"    Total at-risk youth in these districts: {high_risk_districts['estimated_at_risk_youth'].sum():,.0f}")
+        print(f"\n    Top 5 districts by at-risk youth:")
         for idx, row in high_risk_districts.head(5).iterrows():
-            print(f"      {row['district']}, {row['state']}: {row['predicted_failures_per_year']:.0f} failures/year")
+            print(f"      {row['district']}, {row['state']}: {row['estimated_at_risk_youth']:,.0f} at-risk youth (Readiness: {row['readiness_score']:.1f}%)")
     
-    return district_agg, predicted_failures, high_risk_districts
+    return district_agg, total_at_risk, high_risk_districts
 
 
 def create_visualizations(district_agg, state_agg, high_risk_districts):
@@ -292,18 +297,18 @@ def create_visualizations(district_agg, state_agg, high_risk_districts):
     plt.close()
     print(f"  ✓ Saved: dim2_readiness_categories.png")
     
-    # 4. High-Risk Districts (Top 20 by predicted failures)
+    # 4. High-Risk Districts (Top 20 by at-risk youth)
     if len(high_risk_districts) > 0:
         plt.figure(figsize=(14, 8))
         top_20_risk = high_risk_districts.head(20)
         
-        plt.barh(range(len(top_20_risk)), top_20_risk['predicted_failures_per_year'], 
+        plt.barh(range(len(top_20_risk)), top_20_risk['estimated_at_risk_youth'],  # ← NEW
                  color=COLOR_SCHEME['critical'], alpha=0.7)
         plt.yticks(range(len(top_20_risk)), 
                    [f"{row['district']}, {row['state']}" for _, row in top_20_risk.iterrows()],
                    fontsize=9)
-        plt.xlabel('Predicted Authentication Failures (per year)', fontsize=12)
-        plt.title('Top 20 High-Risk Districts by Predicted Authentication Failures', 
+        plt.xlabel('Estimated At-Risk Youth', fontsize=12)  # ← UPDATED
+        plt.title('Top 20 High-Risk Districts by Estimated At-Risk Youth',  # ← UPDATED
                   fontsize=14, fontweight='bold')
         plt.tight_layout()
         plt.savefig(os.path.join(FIGURES_DIR, 'dim2_high_risk_districts.png'), dpi=DPI)
@@ -316,8 +321,7 @@ def create_visualizations(district_agg, state_agg, high_risk_districts):
     # Filter reasonable values
     scatter_data = district_agg[
         (district_agg['readiness_score'] > 0) & 
-        (district_agg['youth_update_rate'] > 0) &
-        (district_agg['youth_update_rate'] < 100)  # Remove extreme outliers
+        (district_agg['estimated_at_risk_youth'] > 0)
     ]
     
     colors_scatter = scatter_data['readiness_category'].map({
@@ -327,13 +331,13 @@ def create_visualizations(district_agg, state_agg, high_risk_districts):
         'Critical': COLOR_SCHEME['critical']
     })
     
-    plt.scatter(scatter_data['youth_update_rate'], 
-                scatter_data['readiness_score'],
+    plt.scatter(scatter_data['readiness_gap'], 
+                scatter_data['estimated_at_risk_youth'],
                 c=colors_scatter, alpha=0.6, s=50)
     
-    plt.xlabel('Youth Update Rate (Bio Updates / Youth Enrollments)', fontsize=12)
-    plt.ylabel('Readiness Score (Youth % of Total Bio Updates)', fontsize=12)
-    plt.title('Transition Readiness Score vs Youth Update Rate', 
+    plt.xlabel('Readiness Gap (Below Median %)', fontsize=12)
+    plt.ylabel('Estimated At-Risk Youth', fontsize=12)
+    plt.title('Readiness Gap vs Estimated At-Risk Youth', 
               fontsize=14, fontweight='bold')
     
     # Add reference lines
@@ -346,48 +350,25 @@ def create_visualizations(district_agg, state_agg, high_risk_districts):
     plt.close()
     print(f"  ✓ Saved: dim2_scatter_readiness_vs_update_rate.png")
     
-    # 6. Time Bomb Chart - Predicted Failures by Month
-    # Simulate monthly distribution (assuming linear throughout year)
-    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    # 6. Readiness Gap Distribution by State
+    plt.figure(figsize=(14, 8))
     
-    # Approximate: More failures during peak months (Jan, Apr, July - school terms)
-    monthly_multipliers = [1.2, 0.8, 0.9, 1.3, 0.9, 0.8, 
-                          1.2, 0.9, 1.1, 0.9, 0.8, 1.2]
+    # Calculate state-level readiness gaps
+    state_gaps = district_agg.groupby('state').agg({
+        'readiness_gap': 'mean',
+        'estimated_at_risk_youth': 'sum'
+    }).sort_values('estimated_at_risk_youth', ascending=False).head(15)
     
-    total_predicted = district_agg['predicted_failures_per_year'].sum()
-    base_monthly = total_predicted / 12
-    
-    monthly_failures = [base_monthly * mult for mult in monthly_multipliers]
-    cumulative_failures = np.cumsum(monthly_failures)
-    
-    fig, ax1 = plt.subplots(figsize=(14, 7))
-    
-    # Monthly failures (bars)
-    ax1.bar(months, monthly_failures, color=COLOR_SCHEME['high'], alpha=0.7, label='Monthly Failures')
-    ax1.set_xlabel('Month', fontsize=12)
-    ax1.set_ylabel('Predicted Monthly Failures', fontsize=12, color=COLOR_SCHEME['high'])
-    ax1.tick_params(axis='y', labelcolor=COLOR_SCHEME['high'])
-    
-    # Cumulative failures (line)
-    ax2 = ax1.twinx()
-    ax2.plot(months, cumulative_failures, color=COLOR_SCHEME['critical'], 
-             linewidth=3, marker='o', label='Cumulative Failures')
-    ax2.set_ylabel('Cumulative Failures', fontsize=12, color=COLOR_SCHEME['critical'])
-    ax2.tick_params(axis='y', labelcolor=COLOR_SCHEME['critical'])
-    
-    plt.title('Authentication Failure "Time Bomb" - Predicted Monthly Impact', 
+    plt.barh(range(len(state_gaps)), state_gaps['estimated_at_risk_youth'],
+             color=COLOR_SCHEME['high'], alpha=0.7)
+    plt.yticks(range(len(state_gaps)), state_gaps.index, fontsize=10)
+    plt.xlabel('Estimated At-Risk Youth', fontsize=12)
+    plt.title('Top 15 States by Estimated At-Risk Youth', 
               fontsize=14, fontweight='bold')
-    
-    # Add legends
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
-    
     plt.tight_layout()
-    plt.savefig(os.path.join(FIGURES_DIR, 'dim2_time_bomb_chart.png'), dpi=DPI)
+    plt.savefig(os.path.join(FIGURES_DIR, 'dim2_state_risk_ranking.png'), dpi=DPI)
     plt.close()
-    print(f"  ✓ Saved: dim2_time_bomb_chart.png")
+    print(f"  ✓ Saved: dim2_state_risk_ranking.png")
 
 
 def generate_priority_lists(district_agg, high_risk_districts, state_agg):
@@ -399,7 +380,7 @@ def generate_priority_lists(district_agg, high_risk_districts, state_agg):
     # Priority List 1: Critical readiness districts
     critical_districts = district_agg[
         district_agg['readiness_category'] == 'Critical'
-    ].sort_values('predicted_failures_per_year', ascending=False)
+    ].sort_values('estimated_at_risk_youth', ascending=False)
     
     critical_file = os.path.join(TABLES_DIR, 'dim2_critical_readiness_districts.csv')
     critical_districts.to_csv(critical_file, index=False)
@@ -409,7 +390,7 @@ def generate_priority_lists(district_agg, high_risk_districts, state_agg):
     if 'Low' in district_agg['readiness_category'].values:
         low_districts = district_agg[
             district_agg['readiness_category'] == 'Low'
-        ].sort_values('predicted_failures_per_year', ascending=False)
+        ].sort_values('estimated_at_risk_youth', ascending=False)
         
         low_file = os.path.join(TABLES_DIR, 'dim2_low_readiness_districts.csv')
         low_districts.to_csv(low_file, index=False)
@@ -418,7 +399,7 @@ def generate_priority_lists(district_agg, high_risk_districts, state_agg):
         # If only 3 categories, use Moderate as the middle priority
         low_districts = district_agg[
             district_agg['readiness_category'] == 'Moderate'
-        ].sort_values('predicted_failures_per_year', ascending=False)
+        ].sort_values('estimated_at_risk_youth', ascending=False)
         
         low_file = os.path.join(TABLES_DIR, 'dim2_moderate_readiness_districts.csv')
         low_districts.to_csv(low_file, index=False)
@@ -433,12 +414,12 @@ def generate_priority_lists(district_agg, high_risk_districts, state_agg):
     if 'Low' in district_agg['readiness_category'].values:
         at_risk_districts = district_agg[
             district_agg['readiness_category'].isin(['Critical', 'Low'])
-        ].sort_values('predicted_failures_per_year', ascending=False)
+        ].sort_values('estimated_at_risk_youth', ascending=False)
     else:
         # If only 3 categories, combine Critical and Moderate
         at_risk_districts = district_agg[
             district_agg['readiness_category'].isin(['Critical', 'Moderate'])
-        ].sort_values('predicted_failures_per_year', ascending=False)
+        ].sort_values('estimated_at_risk_youth', ascending=False)
     
     at_risk_file = os.path.join(TABLES_DIR, 'dim2_all_at_risk_districts.csv')
     at_risk_districts.to_csv(at_risk_file, index=False)
@@ -460,7 +441,7 @@ def generate_priority_lists(district_agg, high_risk_districts, state_agg):
         'High Risk Districts': len(high_risk_districts),
         'Average Readiness Score': district_agg['readiness_score'].mean(),
         'Median Readiness Score': district_agg['readiness_score'].median(),
-        'Total Predicted Failures (Annual)': district_agg['predicted_failures_per_year'].sum()
+        'Total Estimated At-Risk Youth': district_agg['estimated_at_risk_youth'].sum()  # ← NEW
     }
     
     summary_df = pd.DataFrame([summary])
@@ -506,7 +487,7 @@ def main():
     print("DIMENSION 2 ANALYSIS COMPLETE!")
     print("="*60)
     print(f"\n🎯 Key Findings:")
-    print(f"   • Predicted authentication failures (annual): {predicted_failures:,.0f}")
+    print(f"   • Estimated at-risk youth (nationally): {predicted_failures:,.0f}")
     print(f"   • Critical readiness districts: {len(critical_districts)}")
     print(f"   • Low readiness districts: {len(low_districts)}")
     print(f"   • All At-Risk districts (Low+Critical): {len(at_risk_districts)}")

@@ -292,29 +292,48 @@ def calculate_composite_risk_score(pincode_agg, extreme_ue, high_ue, age_anomali
     risk_df = pincode_agg[['pincode', 'state', 'district', 'ue_ratio', 'total_enrollment', 'total_updates']].copy()
     risk_df['risk_score'] = 0
     
+def calculate_composite_risk_score(pincode_agg, extreme_ue, high_ue, age_anomalies, frequent_spikes):
+    """
+    Calculate composite risk score for each pincode
+    """
+    print(f"\n🎯 Calculating Composite Risk Scores...")
+    
+    # Start with all pincodes
+    risk_df = pincode_agg[['pincode', 'state', 'district', 'ue_ratio', 'total_enrollment', 'total_updates']].copy()
+    risk_df['risk_score'] = 0
+    
+    # INITIALIZE BOOLEAN COLUMNS FIRST ✅
+    risk_df['has_extreme_ue'] = False
+    risk_df['has_high_ue'] = False
+    risk_df['has_age_anomaly'] = False
+    risk_df['has_temporal_spike'] = False
+    
     # Add points for different anomaly types
     # 1. Extreme UE ratio (>100) = 5 points
     if len(extreme_ue) > 0:
-        risk_df.loc[risk_df['pincode'].isin(extreme_ue['pincode']), 'risk_score'] += 5
-        risk_df.loc[risk_df['pincode'].isin(extreme_ue['pincode']), 'has_extreme_ue'] = True
+        mask = risk_df['pincode'].isin(extreme_ue['pincode'])
+        risk_df.loc[mask, 'risk_score'] += 5
+        risk_df.loc[mask, 'has_extreme_ue'] = True  
     
     # 2. High UE ratio (>25) = 3 points
     if len(high_ue) > 0:
-        risk_df.loc[risk_df['pincode'].isin(high_ue['pincode']), 'risk_score'] += 3
-        risk_df.loc[risk_df['pincode'].isin(high_ue['pincode']), 'has_high_ue'] = True
+        mask = risk_df['pincode'].isin(high_ue['pincode'])
+        risk_df.loc[mask, 'risk_score'] += 3
+        risk_df.loc[mask, 'has_high_ue'] = True  
     
     # 3. Age concentration anomaly = 2 points
     if len(age_anomalies) > 0:
-        risk_df.loc[risk_df['pincode'].isin(age_anomalies['pincode']), 'risk_score'] += 2
-        risk_df.loc[risk_df['pincode'].isin(age_anomalies['pincode']), 'has_age_anomaly'] = True
+        mask = risk_df['pincode'].isin(age_anomalies['pincode'])
+        risk_df.loc[mask, 'risk_score'] += 2
+        risk_df.loc[mask, 'has_age_anomaly'] = True  
     
     # 4. Frequent temporal spikes = 2 points
     if len(frequent_spikes) > 0:
-        risk_df.loc[risk_df['pincode'].isin(frequent_spikes['pincode']), 'risk_score'] += 2
-        risk_df.loc[risk_df['pincode'].isin(frequent_spikes['pincode']), 'has_temporal_spike'] = True
+        mask = risk_df['pincode'].isin(frequent_spikes['pincode'])
+        risk_df.loc[mask, 'risk_score'] += 2
+        risk_df.loc[mask, 'has_temporal_spike'] = True  
     
-    # Fill NaN with False
-    risk_df = risk_df.fillna(False)
+    
     
     # Filter to only pincodes with anomalies (risk_score > 0)
     anomalous_pincodes = risk_df[risk_df['risk_score'] > 0].copy()
@@ -463,10 +482,10 @@ def create_visualizations(pincode_agg, anomalous_pincodes, district_counts):
         plt.figure(figsize=(10, 8))
         
         anomaly_types = {
-            'Extreme UE (>100)': anomalous_pincodes['has_extreme_ue'].sum() if 'has_extreme_ue' in anomalous_pincodes else 0,
-            'High UE (>25)': anomalous_pincodes['has_high_ue'].sum() if 'has_high_ue' in anomalous_pincodes else 0,
-            'Age Concentration': anomalous_pincodes['has_age_anomaly'].sum() if 'has_age_anomaly' in anomalous_pincodes else 0,
-            'Temporal Spikes': anomalous_pincodes['has_temporal_spike'].sum() if 'has_temporal_spike' in anomalous_pincodes else 0
+            'Extreme UE (>100)': anomalous_pincodes['has_extreme_ue'].sum(),
+            'High UE (>25)': anomalous_pincodes['has_high_ue'].sum(),
+            'Age Concentration': anomalous_pincodes['has_age_anomaly'].sum(),
+            'Temporal Spikes': anomalous_pincodes['has_temporal_spike'].sum()
         }
         
         # Filter out zero values
@@ -486,7 +505,7 @@ def create_visualizations(pincode_agg, anomalous_pincodes, district_counts):
             print(f"  ✓ Saved: dim3_anomaly_types.png")
 
 
-def generate_priority_lists(anomalous_pincodes, district_counts):
+def generate_priority_lists(anomalous_pincodes, district_counts, pincode_agg):
     """
     Generate priority lists for investigation
     """
@@ -529,10 +548,12 @@ def generate_priority_lists(anomalous_pincodes, district_counts):
         cluster_file = os.path.join(TABLES_DIR, 'dim3_clustered_districts.csv')
         district_counts.to_csv(cluster_file, index=False)
         print(f"  ✓ Saved: dim3_clustered_districts.csv ({len(district_counts)} districts)")
-    
+
+
+
     # Summary statistics
     summary = {
-        'Total Pincodes Analyzed': len(anomalous_pincodes) + 10000,  # Approximate
+        'Total Pincodes Analyzed': len(pincode_agg),  # ✅ ACTUAL COUNT
         'Anomalous Pincodes': len(anomalous_pincodes),
         'Critical Risk (All)': len(anomalous_pincodes[anomalous_pincodes['risk_level'] == 'Critical']) if 'Critical' in anomalous_pincodes['risk_level'].values else 0,
         'Critical Risk (Top 10)': min(10, len(anomalous_pincodes[anomalous_pincodes['risk_level'] == 'Critical'])) if 'Critical' in anomalous_pincodes['risk_level'].values else 0,
@@ -583,7 +604,7 @@ def main():
     create_visualizations(pincode_agg, anomalous_pincodes, district_counts)
     
     # 7. Generate Priority Lists
-    generate_priority_lists(anomalous_pincodes, district_counts)
+    generate_priority_lists(anomalous_pincodes, district_counts, pincode_agg)
     
     # Final summary
     print("\n" + "="*60)

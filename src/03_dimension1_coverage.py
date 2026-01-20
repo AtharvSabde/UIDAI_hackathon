@@ -451,7 +451,7 @@ def main():
     print("="*60)
     print(f"\n🎯 Key Findings:")
     print(f"   • {len(coverage_gap)} districts show 'Saturation/Coverage Gap'")
-    print(f"   • {len(low_child_districts)} districts have low child enrollment (<15%)")
+    print(f"   • {len(low_child_districts)} districts have low child enrollment (<80%)")
     print(f"   • {len(crisis_zone)} districts in 'Crisis Zone'")
     print(f"   • Top 10 Crisis Zone districts saved for priority intervention")
     print(f"   • Average UE Ratio: {district_agg['ue_ratio'].mean():.2f}")

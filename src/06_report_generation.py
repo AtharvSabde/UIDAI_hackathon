@@ -3,7 +3,7 @@ Enhanced Report Generator - WITH ALL IMPROVEMENTS
 - Page numbers at bottom right
 - Table of contents on page 2
 - Point-wise information instead of paragraphs
-- Key insight boxes at start of each dimension
+- Key insight boxes at start of each fdimension
 """
 
 import pandas as pd
@@ -281,7 +281,7 @@ class EnhancedAadhaarReport:
         
         # Key metrics
         metrics_data = [
-            ['6.7M', '132.8M', '19.8×'],
+            ['5.44M', '119.06M', '21.9×'],
             ['Enrollments', 'Updates', 'UE Ratio'],
         ]
         metrics_table = Table(metrics_data, colWidths=[2*inch, 2*inch, 2*inch])
@@ -307,7 +307,7 @@ class EnhancedAadhaarReport:
             
             ['Problem Statement', 'Targeting Enrollment Stagnation, Mandatory Update Lags, and Data Anomalies'],
             ['Analysis Period', 'January - December 2025'],
-            ['Geographic Coverage', '36 states  • 19,814 pincodes'],
+            ['Geographic Coverage', '36 states • 888 state-district combinations • 19,814 pincodes'],
             ['Report Date', datetime.now().strftime('%B %d, %Y')]
         ]
         
@@ -608,15 +608,45 @@ class EnhancedAadhaarReport:
         
         # Statistics - point-wise
         stats_points = [
-            "<b>Total records:</b> 2,963,994 (after merging and aggregation)",
-            "<b>Unique dates:</b> 115 (weekly aggregation from Jan 3 - Dec 31, 2025)",
-            "<b>Geographic coverage:</b> 36 states, 1,051 state–district combinations (1,028 unique district names), 19,814 pincodes",
-            "<b>Total enrollments tracked:</b> 6,703,112",
-            "<b>Total bio updates tracked:</b> 81,359,177",
-            "<b>Total demo updates tracked:</b> 51,432,273",
-            "<b>Data completeness:</b> No missing values in core metrics"
+    "<b>Total records:</b> 2,187,722 (after merging and deduplication)",
+    "<b>Unique dates:</b> 92 (weekly aggregation from Jan 3 - Dec 31, 2025)",
+    "<b>Geographic coverage:</b> 36 states, 888 state-district combinations* (865 unique district names), 19,814 pincodes",
+    "<b>Total enrollments tracked:</b> 5,435,484",
+    "<b>Total biometric updates tracked:</b> 69,763,095",
+    "<b>Total demographic updates tracked:</b> 49,295,185",
+    "<b>Total updates tracked:</b> 119,058,280",
+    "<b>National UE Ratio:</b> 21.90× (updates per enrollment)",
+    "<b>Data completeness:</b> No missing values in core metrics",
+    "<b>Note:</b> *783,737 duplicate records removed during data cleaning (same date-state-district-pincode combinations aggregated)"
         ]
         
+
+        self.story.append(Spacer(1, 0.12*inch))
+
+        # Geographic complexity explanation
+        geo_complexity_block = [
+        Paragraph("<b>Geographic Complexity Note:</b>", self.styles['SubsectionHeading'])
+        ]
+
+        geo_points = [
+    "<b>888 State-District Combinations:</b> Some pincodes legitimately serve areas across state/district boundaries",
+    "<b>865 Unique District Names:</b> The difference (23) represents cross-border pincodes",
+    "<b>Example:</b> A pincode on the Chandigarh-Punjab border appears in both jurisdictions",
+    "<b>Approach:</b> Analysis treats (state, district) as composite key to preserve geographic accuracy",
+    "<b>Impact:</b> Prevents information loss from forced consolidation; reflects real administrative boundaries"
+        ]
+
+        for point in geo_points:
+            geo_complexity_block.append(
+                Paragraph(f"• {point}", self.styles['BulletPoint'])
+            )
+
+        self.story.append(KeepTogether(geo_complexity_block))
+
+        self.story.append(Spacer(1, 0.12*inch))
+
+
+
         self.story.append(Paragraph("<b>Final Merged Dataset Statistics:</b>", self.styles['SubsectionHeading']))
         for point in stats_points:
             self.story.append(Paragraph(f"• {point}", self.styles['BulletPoint']))
@@ -654,6 +684,15 @@ class EnhancedAadhaarReport:
              "Fixed case inconsistencies, spelling errors, invalid entries",
              "Examples: 'WEST BENGAL'/'West bengal' → 'West Bengal'; 'ODISHA'/'Orissa' → 'Odisha'",
              "Removed 24 invalid records (pincodes/cities listed as states)"),
+
+
+
+            ("<b>District Name Standardization:</b>",
+            "Identified and corrected 137+ district name variations",
+            "Fixed spelling inconsistencies, special characters, East/West duplicates",
+            "Examples: 'Ananthapur'/'Ananthapuramu' → 'Anantapur'; 'Medinipur West'/'West Medinipur' → 'Paschim Medinipur'",
+            "Reduced from 1,028 apparent districts to 865 unique districts"),
+
             
             ("<b>Geographic Validation:</b>",
              "Cross-validated district-state mappings against Census 2011",
@@ -661,7 +700,7 @@ class EnhancedAadhaarReport:
             
             ("<b>Temporal Consistency:</b>",
              "Verified date ranges: Jan 3 - Dec 31, 2025",
-             "Confirmed weekly aggregation: 115 unique dates across 363 days"),
+             "Confirmed weekly aggregation: 92 unique dates across 363 days"),
             
             ("<b>Null Value Handling:</b>",
              "Verified zero missing values in core numeric columns",
@@ -669,7 +708,14 @@ class EnhancedAadhaarReport:
             
             ("<b>Outlier Detection:</b>",
              "Flagged extreme values for Dimension 3 anomaly analysis",
-             "Preserved outliers to maintain data quality signals")
+             "Preserved outliers to maintain data quality signals"),
+
+
+            ("<b>Duplicate Record Aggregation:</b>",
+            "Identified 783,737 duplicate records with same (date, state, district, pincode) combination",
+            "Breakdown: 48,143 enrollment, 189,219 biometric, 546,375 demographic duplicates",
+            "Approach: Aggregated (summed) duplicate records before merge to prevent count inflation",
+            "Result: Merged dataset reduced from 3.17M to 2.19M records with accurate totals")
         ]
         
         for task in cleaning_tasks:
@@ -687,9 +733,10 @@ class EnhancedAadhaarReport:
         
         transformations = [
             ("<b>UE Ratio (Update-to-Enrollment Ratio):</b>",
-             "Formula: (Total Updates) ÷ (Total Enrollments) at district/pincode level",
-             "NOT published by UIDAI - derived metric for saturation analysis",
-             "Interpretation: Ratio >1 = saturation; Ratio >>20 = mature system"),
+            "Formula: (Total Updates) ÷ (Total Enrollments) at district/pincode level",
+            "NOT published by UIDAI - derived metric for saturation analysis",
+            "National UE Ratio: 21.90× (119.06M updates ÷ 5.44M enrollments)",
+            "Interpretation: Ratio >1 = saturation; Ratio ~22 = mature update-driven system"),
             
             ("<b>Child Enrollment Percentage:</b>",
              "Formula: [(age_0_5 + age_5_17) ÷ Total Enrollments] × 100",
@@ -708,7 +755,7 @@ class EnhancedAadhaarReport:
             
             ("<b>2×2 Classification Matrix:</b>",
              "Based on enrollment and update levels vs. medians",
-             "Medians: Enrollment = 3,535; Updates = 73,494",
+             "Medians: Enrollment = 5,340; Updates = 115,128",
              "Four quadrants: Healthy & Growing, Saturation/Coverage Gap, New Users Need Engagement, Crisis Zone")
         ]
         
@@ -721,6 +768,40 @@ class EnhancedAadhaarReport:
         
         self.story.append(Spacer(1, 0.15*inch))
         
+
+        self.story.append(Spacer(1, 0.15*inch))
+
+        # UE Ratio variants explanation
+        ue_variants_block = [
+         Paragraph("<b>Understanding UE Ratio Variants:</b>", self.styles['SubsectionHeading'])
+        ]
+
+        ue_variant_points = [
+    "<b>National UE Ratio (21.90×):</b> Total updates ÷ total enrollments nationally",
+    "  - Primary metric for overall system maturity",
+    "  - Size-weighted: reflects actual transaction volumes",
+    
+    "<b>Average District UE Ratio (27.70):</b> Arithmetic mean of district-level ratios",
+    "  - Shows typical district without size weighting",
+    "  - Higher than national due to small saturated districts",
+    
+    "<b>Median District UE Ratio (23.62):</b> 50th percentile of district ratios",
+    "  - Robust measure less affected by outliers",
+    "  - Closest to national ratio (21.90)",
+    
+    "<b>Why They Differ:</b> Larger districts with more new enrollments have lower UE ratios, while smaller saturated districts have higher ratios. The national ratio (21.90) is most appropriate for policy assessment as it's size-weighted."
+        ]
+
+        for point in ue_variant_points:
+            ue_variants_block.append(
+                Paragraph(f"• {point}", self.styles['BulletPoint'])
+            )
+
+        self.story.append(KeepTogether(ue_variants_block))
+
+
+
+
         # Analytical methods
         methods_heading = Paragraph("Analytical Methods and Algorithms", self.styles['SubsectionHeading'])
         self.story.append(methods_heading)
@@ -782,29 +863,35 @@ class EnhancedAadhaarReport:
         
         summary_text = """
         This section presents key findings from our three-dimensional analysis of Aadhaar transactions in 2025 
-        (6.7M enrollments and 132.8M updates across 2.96M records), revealing a system in transition from 
-        enrollment-driven to update-driven operations. Our analysis identifies 53 coverage gap districts, 
-        49 at-risk readiness districts, and 32 high-risk pincodes requiring immediate intervention.
+        (5.44M enrollments and 119.06M updates across 2.19M records after deduplication), revealing a system 
+        in transition from enrollment-driven to update-driven operations. Our analysis identifies 57 coverage 
+        gap districts, 24 at-risk readiness districts, and 48 critical+high risk pincodes requiring immediate 
+        intervention.
         """
         self.story.append(Paragraph(summary_text, self.styles['BodyJustified']))
         self.story.append(Spacer(1, 0.12*inch))
         
         # Key findings - CORRECTED
         findings = [
-            ("<b>Strategic Pivot Confirmed:</b> 97.1% of 2025 enrollments are children (0-17), with newborns (0-5) "
-             "comprising 66.2%. This validates UIDAI's stated emphasis on child enrollment and backlog clearance."),
-            
-            ("<b>Update-Driven Economy:</b> Updates outnumber enrollments by 19.8× nationally (UE Ratio: 19.81), representing "
-             "+57% increase from derived FY 2024-25 baseline of 12.6. Confirms system maturity and saturation."),
-            
-            ("<b>Coverage Gaps Persist:</b> 53 districts (5.0%) exhibit 'Saturation/Coverage Gap' patterns—high updates but "
-             "stagnant enrollments—indicating exclusion of marginalized populations."),
-            
-            ("<b>Youth Readiness Success:</b> 75.9% of districts achieve 'Good' readiness (≥30% youth bio updates), but 49 "
-             "districts (4.7%) remain at-risk (27 critical, 22 low priority), requiring mobile biometric camps."),
-            
-            ("<b>Integrity Largely Intact:</b> Only 32 pincodes (0.5% of 6,956 flagged anomalies) demand immediate investigation. "
-             "Geographic clustering in 561 districts suggests systematic patterns worth monitoring.")
+    ("<b>Strategic Pivot Confirmed:</b> 96.9% of 2025 enrollments are children (0-17), with newborns (0-5) "
+     "comprising 65.3% and youth (5-17) comprising 31.7%. This validates UIDAI's stated emphasis on child "
+     "enrollment and backlog clearance."),
+    
+    ("<b>Update-Driven Economy:</b> Updates outnumber enrollments by 21.9× nationally (National UE Ratio: 21.90), "
+     "representing system maturity and saturation. The average district UE ratio is 27.70 (unweighted mean), "
+     "while the median is 23.62."),
+    
+    ("<b>Coverage Gaps Persist:</b> 57 districts (6.4% of 888 state-district combinations) exhibit "
+     "'Saturation/Coverage Gap' patterns—high updates but stagnant enrollments—indicating exclusion of "
+     "marginalized populations."),
+    
+    ("<b>Youth Readiness Success:</b> 84.8% of districts (753 of 888) achieve 'Good' readiness (≥30% youth bio "
+     "updates), but 24 districts (2.7%) remain at-risk (12 critical, 12 low priority), requiring mobile "
+     "biometric camps."),
+    
+    ("<b>Integrity Largely Intact:</b> 48 pincodes (1.0% of 4,628 flagged anomalies) demand immediate "
+     "investigation (32 critical risk + 16 high risk). Geographic clustering in 395 districts suggests "
+     "systematic patterns worth monitoring.")
         ]
         
         for finding in findings:
@@ -910,12 +997,12 @@ class EnhancedAadhaarReport:
         
         # Key metrics table
         metrics_data = [
-            ['Metric', 'Value', 'Interpretation'],
-            ['Average District UE Ratio', '23.90', 'Updates exceed enrollments 24×'],
-            ['Median District UE Ratio', '20.16', 'Typical district reality'],
-            ['Child Enrollment %', '97.1%', '66.2% age 0-5, 30.9% age 5-17'],
-            ['Adult Enrollment %', '2.9%', 'Near-complete saturation'],
-            ['Districts Analyzed', '1,051', 'Across 36 states'],
+    ['Metric', 'Value', 'Interpretation'],
+    ['Average District UE Ratio', '27.70', 'Updates exceed enrollments 27.7×'],
+    ['Median District UE Ratio', '23.62', 'Typical district reality'],
+    ['Child Enrollment %', '96.9%', '65.3% age 0-5, 31.7% age 5-17'],
+    ['Adult Enrollment %', '3.1%', 'Near-complete saturation'],
+    ['Districts Analyzed', '888*', '865 unique names, 36 states'],
         ]
         
         metrics_table = Table(metrics_data, colWidths=[2.5*inch, 1.5*inch, 2.5*inch])
@@ -932,6 +1019,20 @@ class EnhancedAadhaarReport:
         
         self.story.append(metrics_table)
         self.story.append(Spacer(1, 0.15*inch))
+
+        self.story.append(metrics_table)
+        self.story.append(Spacer(1, 0.08*inch))
+
+        # Add footnote about 888 districts
+        district_note = Paragraph(
+            "<i>*888 state-district combinations representing 865 unique district names. "
+            "Some pincodes serve areas across state/district boundaries.</i>",
+            self.styles['BodyJustified']
+        )
+        self.story.append(district_note)
+        self.story.append(Spacer(1, 0.15*inch)) 
+
+
         
         # Fig 1
         fig1_path = os.path.join(FIGURES_DIR, 'data_quality_age_distribution.png')
@@ -947,11 +1048,11 @@ class EnhancedAadhaarReport:
         self.story.append(matrix_heading)
         
         matrix_data = [
-            ['Category', 'Count', '%', 'Recommended Action'],
-            ['Healthy & Growing', '473', '45.0%', 'Maintain current operations'],
-            ['Saturation/Coverage Gap', '53', '5.0%', 'Targeted enrollment drives for marginalized'],
-            ['New Users Need Engagement', '53', '5.0%', 'Update awareness campaigns'],
-            ['Crisis Zone', '472', '44.9%', 'Comprehensive outreach needed'],
+    ['Category', 'Count', '%', 'Recommended Action'],
+    ['Healthy & Growing', '387', '43.6%', 'Maintain current operations'],
+    ['Saturation/Coverage Gap', '57', '6.4%', 'Targeted enrollment drives for marginalized'],
+    ['New Users Need Engagement', '57', '6.4%', 'Update awareness campaigns'],
+    ['Crisis Zone', '387', '43.6%', 'Comprehensive outreach needed'],
         ]
         
         matrix_table = Table(matrix_data, colWidths=[2*inch, 1*inch, 0.8*inch, 2.7*inch])
@@ -1005,21 +1106,23 @@ class EnhancedAadhaarReport:
         
         overview = """
         Highlights districts where many youth (ages 5–17) may face authentication difficulties upon turning 18 due to 
-        pending biometric updates. Estimates are based on enrollment and update patterns.
+        pending biometric updates. Analysis shows 49.1% of biometric updates come from youth (5-17), with 24 districts 
+        (2.7%) requiring immediate intervention through mobile biometric camps.
         """
         self.story.append(Paragraph(overview, self.styles['BodyJustified']))
         self.story.append(Spacer(1, 0.12*inch))
         
         # Readiness table
         readiness_data = [
-            ['Metric', 'Value', 'Assessment'],
-            ['Youth Bio Updates', '39.96M', 'Nearly half of all bio updates'],
-            ['Mean Readiness Score', '42.5%', 'Above 30% threshold'],
-            ['Good Readiness Districts', '798', 'MBU policy working'],
-            ['Moderate Readiness', '122', 'Needs monitoring'],
-            ['Low Readiness Districts', '22', 'High priority'],
-            ['Critical Readiness', '27', 'Urgent intervention needed'],
-            ['At-Risk Total', '49', 'Combined priority action'],
+    ['Metric', 'Value', 'Assessment'],
+    ['Youth Bio Updates (5-17)', '34.23M', '49.1% of all bio updates'],
+    ['Total Bio Updates', '69.76M', 'System-wide biometric activity'],
+    ['Mean Readiness Score', '45.9%', 'Above 30% threshold'],
+    ['Good Readiness Districts', '753', '84.8% - MBU policy working'],
+    ['Moderate Readiness', '69', '7.8% - Needs monitoring'],
+    ['Low Readiness Districts', '12', '1.4% - High priority'],
+    ['Critical Readiness', '12', '1.4% - Urgent intervention needed'],
+    ['At-Risk Total', '24', '2.7% - Combined priority action'],
         ]
         
         readiness_table = Table(readiness_data, colWidths=[2.2*inch, 2.2*inch, 2.1*inch])
@@ -1080,20 +1183,21 @@ class EnhancedAadhaarReport:
         
         overview = """
         Multi-layered anomaly detection with composite risk scoring prioritizes investigation resources. 
-        Only 0.5% of flagged pincodes require immediate action, demonstrating overall system integrity.
+        48 pincodes (1.0% of 4,628 anomalies) require immediate action (32 critical + 16 high risk), 
+        demonstrating overall system integrity while identifying specific areas needing investigation.
         """
         self.story.append(Paragraph(overview, self.styles['BodyJustified']))
         self.story.append(Spacer(1, 0.12*inch))
         
         # Integrity table
         integrity_data = [
-            ['Category', 'Count', '%', 'Action'],
-            ['Total Pincodes', '19,814', '100%', 'Complete coverage'],
-            ['Anomalous', '6,956', '35.1%', 'Flagged for review'],
-            ['Low Risk', '2,201', '31.6%', 'Routine monitoring'],
-            ['Medium Risk', '4,723', '67.9%', 'Periodic audit'],
-            ['High Risk', '15', '0.2%', 'Priority investigation'],
-            ['Critical Risk', '17', '0.2%', 'Immediate action'],
+    ['Category', 'Count', '%', 'Action'],
+    ['Total Pincodes', '19,814', '100%', 'Complete coverage'],
+    ['Anomalous', '4,628', '23.4%', 'Flagged for review'],
+    ['Low Risk', '2,897', '62.6%', 'Routine monitoring'],
+    ['Medium Risk', '1,683', '36.4%', 'Periodic audit'],
+    ['High Risk', '16', '0.3%', 'Priority investigation'],
+    ['Critical Risk', '32', '0.7%', 'Immediate action'],
         ]
         
         integrity_table = Table(integrity_data, colWidths=[2*inch, 1.2*inch, 1*inch, 2.3*inch])
@@ -1151,12 +1255,13 @@ class EnhancedAadhaarReport:
         self.story.append(imm_heading)
         
         immediate = [
-            ("<b>Mobile Camp Deployment:</b> Consider deploying 15-20 mobile biometric units to 49 at-risk readiness districts "
-             "(27 critical priority, 22 low priority). Prioritize Purbi Champaran, Bihar with approximately 1,600 youth at "
-             "potential authentication risk annually. Target youth aged 15-17."),
+            ("<b>Mobile Camp Deployment:</b> Consider deploying 15-20 mobile biometric units to 24 at-risk readiness districts "
+            "(12 critical priority, 12 low priority) with highest estimated authentication risk for youth transitioning to "
+            "adulthood. Target youth aged 15-17 to ensure biometric updates before mandatory authentication at age 18."),
             
-            ("<b>High-Risk Audit:</b> Recommend investigating 32 critical/high-risk pincodes for data quality issues. "
-             "Focus on districts with anomaly clustering (561 districts with ≥3 anomalies identified)."),
+            ("<b>High-Risk Audit:</b> Recommend investigating 48 critical/high-risk pincodes (32 critical + 16 high risk) for "
+            "data quality issues. Focus on districts with anomaly clustering (395 districts with ≥3 anomalies identified) "
+            "to detect systematic patterns requiring investigation."),
         ]
         
         for rec in immediate:
@@ -1169,11 +1274,13 @@ class EnhancedAadhaarReport:
         self.story.append(short_heading)
         
         short_term = [
-            ("<b>Coverage Gap Closure:</b> Recommend targeted enrollment drives in 53 'Coverage Gap' districts, "
-             "focusing on marginalized populations, migrants, and remote areas."),
+            ("<b>Coverage Gap Closure:</b> Recommend targeted enrollment drives in 57 'Coverage Gap' districts, "
+            "focusing on marginalized populations, migrants, and remote areas where high update activity masks "
+            "stagnant enrollment of underserved groups."),
             
-            ("<b>Crisis Zone Outreach:</b> Suggest developing community engagement strategy for 472 'Crisis Zone' districts. "
-             "Partner with NGOs, Anganwadi centers, and schools for awareness campaigns."),
+            ("<b>Crisis Zone Outreach:</b> Suggest developing community engagement strategy for 387 'Crisis Zone' districts "
+            "with low enrollment and low update activity. Partner with NGOs, Anganwadi centers, and schools for awareness "
+            "campaigns and grassroots enrollment drives."),
         ]
         
         for rec in short_term:
@@ -1207,13 +1314,15 @@ class EnhancedAadhaarReport:
         
         conclusion = """
         India's Aadhaar system has successfully transitioned from enrollment expansion to update-driven maintenance, 
-        with 97.1% of new enrollments targeting children. However, critical equity gaps persist: 53 districts show 
-        coverage gaps potentially excluding marginalized populations, 49 districts face authentication readiness 
-        challenges (27 critical, 22 low priority), and 32 pincodes require immediate data quality investigation.<br/><br/>
-        
+        with 96.9% of new enrollments targeting children and a national UE ratio of 21.9×. However, critical equity 
+        gaps persist: 57 districts show coverage gaps potentially excluding marginalized populations, 24 districts face 
+        authentication readiness challenges (12 critical, 12 low priority), and 48 pincodes require immediate data 
+        quality investigation (32 critical + 16 high risk).<br/><br/>
+
         Our three-dimensional framework provides UIDAI with a replicable diagnostic tool for precision interventions. 
-        The transition to universal coverage requires targeted action—mobile camps to Bihar, enrollment drives to 53 
-        districts, audit of 32 pincodes—not mass campaigns. These findings are actionable, geographically specific, 
+        The transition to universal coverage requires targeted action—mobile camps to 24 at-risk districts, enrollment 
+        drives to 57 coverage gap districts, audit of 48 high-priority pincodes—not mass campaigns. By analyzing 888 
+        state-district combinations across 19,814 pincodes, these findings are actionable, geographically specific, 
         and resource-optimized for immediate deployment.
         """
         self.story.append(Paragraph(conclusion, self.styles['BodyJustified']))
@@ -1339,15 +1448,15 @@ aadhaar_analysis/
 │
 ├── data/
 │   ├── raw/                      # Original UIDAI datasets
-│   │   ├── api_data_aadhar_enrolment_*.csv      (3 files, 1.01M records)
-│   │   ├── api_data_aadhar_biometric_*.csv      (4 files, 1.86M records)
-│   │   └── api_data_aadhar_demographic_*.csv    (5 files, 2.07M records)
+│   │   ├── api_data_aadhar_enrolment_*.csv      
+│   │   ├── api_data_aadhar_biometric_*.csv      
+│   │   └── api_data_aadhar_demographic_*.csv    
 │   │
 │   └── processed/                # Cleaned and merged datasets
 │       ├── enrollment_clean.csv
 │       ├── biometric_clean.csv
 │       ├── demographic_clean.csv
-│       └── merged_data.csv          (2.96M records)
+│       └── merged_data.csv          
 │
 ├── outputs/
 │   ├── tables/                      # 19 CSV files with analytical outputs
@@ -1396,7 +1505,7 @@ aadhaar_analysis/
             ['Script', 'Primary Responsibility'],
             ['00_data_quality_check.py', 'Initial integrity checks on raw UIDAI datasets'],
             ['01_data_loading.py', 'Data ingestion and schema validation (12 CSV files)'],
-            ['02_data_cleaning.py', 'State standardization (64 variations → 36 states), merging'],
+            ['02_data_cleaning.py', 'State & district standardization (36 states, 888 combinations), duplicate aggregation, merging'],
             ['03_dimension1_coverage.py', 'Coverage Gap: UE ratios, 2×2 matrix, child enrollment'],
             ['04_dimension2_readiness.py', 'Readiness Gap: Youth biometric compliance, risk prediction'],
             ['05_dimension3_integrity.py', 'Integrity Gap: Multi-layered anomaly detection (0-12 scoring)'],
@@ -1430,11 +1539,12 @@ aadhaar_analysis/
         story.append(Spacer(1, 0.08*inch))
     
         repro_bullets = """
-        • <b>Determinism:</b> Fixed thresholds and aggregation logic ensure repeatable results<br/>
-        • <b>Validation:</b> All reported figures are programmatically verified prior to PDF generation<br/>
-        • <b>Data Governance:</b> Analysis uses only anonymised datasets supplied by UIDAI for the hackathon<br/>
-        • <b>Transparency:</b> All derived metrics are clearly distinguished from official UIDAI statistics<br/>
-        • <b>Auditability:</b> Complete execution logs and intermediate outputs preserved for verification
+        - <b>Determinism:</b> Fixed thresholds and aggregation logic ensure repeatable results<br/>
+        - <b>Validation:</b> All reported figures are programmatically verified prior to PDF generation<br/>
+        - <b>Data Governance:</b> Analysis uses only anonymised datasets supplied by UIDAI for the hackathon<br/>
+        - <b>Geographic Standardization:</b>Comprehensive state (36) and district (865 unique names, 888 combinations) name standardization applied<br/>
+        - <b>Transparency:</b> All derived metrics are clearly distinguished from official UIDAI statistics<br/>
+        - <b>Auditability:</b> Complete execution logs and intermediate outputs preserved for verification
         """
         story.append(Paragraph(repro_bullets, styles['BodyJustified']))
         story.append(Spacer(1, 0.1*inch))
@@ -1507,7 +1617,7 @@ aadhaar_analysis/
         file_path = os.path.join(data_dir, filename)
         
         if not os.path.exists(file_path):
-            print(f"  WARNING: File not found: {filename}")
+            print(f"  ⚠️  WARNING: File not found: {filename}")
             continue
         
         try:
@@ -1515,14 +1625,16 @@ aadhaar_analysis/
             rows = len(df)
             total_rows += rows
             dataframes.append(df)
-            print(f"  [{i}/{len(file_list)}] ✓ {filename} ({rows:,} rows)")
+            print(f"  [{i}/{len(file_list)}] ✓ {filename}")
+            print(f"       Rows: {rows:,} | Columns: {df.shape[1]}")
         except Exception as e:
             print(f"  ✗ Error loading {filename}: {str(e)}")
             continue
     
     if dataframes:
         combined_df = pd.concat(dataframes, ignore_index=True)
-        print(f"✓ Combined {len(dataframes)} files: {total_rows:,} records")
+        print(f"✓ Successfully combined {len(dataframes)} files")
+        print(f"  Total rows: {total_rows:,}")
         return combined_df
     else:
         return None'''
@@ -1576,28 +1688,95 @@ def standardize_state_names(df):
         'WESTBENGAL': 'West Bengal',
         'Westbengal': 'West Bengal',
         'west Bengal': 'West Bengal',
+        'West Bangal': 'West Bengal',
+        'West Bengli': 'West Bengal',
         'West  Bengal': 'West Bengal',  # double space
+        'west bengal': 'West Bengal',
+        'West bengal': 'West Bengal',
+        
+        # Chhattisgarh variations
+        'Chhatisgarh': 'Chhattisgarh',
+        'CHHATTISGARH': 'Chhattisgarh',
+        
+        # Tamil Nadu variations
+        'Tamilnadu': 'Tamil Nadu',
+        'TAMIL NADU': 'Tamil Nadu',
+        
+        # Andhra Pradesh variations
+        'andhra pradesh': 'Andhra Pradesh',
+        'ANDHRA PRADESH': 'Andhra Pradesh',
+        
+        # Jammu and Kashmir variations
+        'Jammu And Kashmir': 'Jammu and Kashmir',
+        'Jammu & Kashmir': 'Jammu and Kashmir',
+        'JAMMU AND KASHMIR': 'Jammu and Kashmir',
+        
+        # Uttarakhand variations
+        'Uttaranchal': 'Uttarakhand',
+        'UTTARAKHAND': 'Uttarakhand',
+        
+        # Puducherry variations
+        'Pondicherry': 'Puducherry',
+        'PUDUCHERRY': 'Puducherry',
+        
+        # Andaman & Nicobar variations
+        'Andaman and Nicobar Islands': 'Andaman & Nicobar Islands',
+        'Andaman & Nicobar': 'Andaman & Nicobar Islands',
+        'A & N Islands': 'Andaman & Nicobar Islands',
+        'ANDAMAN & NICOBAR ISLANDS': 'Andaman & Nicobar Islands',
         
         # Dadra & Nagar Haveli and Daman & Diu (merged UT in 2020)
         'Dadra & Nagar Haveli': 'Dadra & Nagar Haveli and Daman & Diu',
         'Daman & Diu': 'Dadra & Nagar Haveli and Daman & Diu',
+        'Dadra and Nagar Haveli': 'Dadra & Nagar Haveli and Daman & Diu',
+        'Daman and Diu': 'Dadra & Nagar Haveli and Daman & Diu',
+        'The Dadra And Nagar Haveli And Daman And Diu': 'Dadra & Nagar Haveli and Daman & Diu',
+        
+        # Delhi variations
+        'NCT of Delhi': 'Delhi',
+        'New Delhi': 'Delhi',
+        'DELHI': 'Delhi',
+        
+        # All CAPS state variations (showing representative sample)
+        'MANIPUR': 'Manipur', 'TRIPURA': 'Tripura', 'ASSAM': 'Assam',
+        'BIHAR': 'Bihar', 'GOA': 'Goa', 'GUJARAT': 'Gujarat',
+        'HARYANA': 'Haryana', 'HIMACHAL PRADESH': 'Himachal Pradesh',
+        'JHARKHAND': 'Jharkhand', 'KARNATAKA': 'Karnataka',
+        'KERALA': 'Kerala', 'MADHYA PRADESH': 'Madhya Pradesh',
+        'MAHARASHTRA': 'Maharashtra', 'MEGHALAYA': 'Meghalaya',
+        'MIZORAM': 'Mizoram', 'NAGALAND': 'Nagaland',
+        'PUNJAB': 'Punjab', 'RAJASTHAN': 'Rajasthan',
+        'SIKKIM': 'Sikkim', 'TELANGANA': 'Telangana',
+        'UTTAR PRADESH': 'Uttar Pradesh', 'CHANDIGARH': 'Chandigarh',
+        'LADAKH': 'Ladakh', 'LAKSHADWEEP': 'Lakshadweep',
         
         # INVALID ENTRIES - Districts mistakenly in state column
         'BALANAGAR': 'Telangana',
         'Darbhanga': 'Bihar',
         'Jaipur': 'Rajasthan',
-        # ... (64 total mappings)
+        'Madanapalle': 'Andhra Pradesh',
+        'Nagpur': 'Maharashtra',
+        'Puttenahalli': 'Karnataka',
+        'Raja Annamalai Puram': 'Tamil Nadu',
+        
+        # Invalid pincode entries
+        '100000': None,
+        # ... (64 total mappings including all case variations)
     }
 
     # Apply standardization
     records_before = len(df)
     df['state'] = df['state'].replace(STATE_NAME_MAPPING)
 
-    # Remove invalid entries
+    # Remove invalid entries (None values)
     df = df[df['state'].notna()].copy()
     df['state'] = df['state'].str.strip()
+    
+    records_removed = records_before - len(df)
+    if records_removed > 0:
+        print(f"  🗑️  Removed {records_removed:,} invalid records")
 
-    print(f"✓ Standardized {records_before - len(df)} invalid records")
+    print(f"✓ Standardized state names")
     print(f"✓ Final: {df['state'].nunique()} clean states")
 
     return df
@@ -1606,6 +1785,95 @@ def standardize_state_names(df):
         self.story.append(Preformatted(state_code, my_code_style))
         self.story.append(PageBreak())
     
+        # B.2.5 District Name Standardization
+        snippet_heading = Paragraph(
+            "B.2.5 Comprehensive District Name Standardization (src/02_data_cleaning.py)", 
+            styles['SubsectionHeading']
+        )
+        story.append(snippet_heading)
+        story.append(Spacer(1, 0.08*inch))
+
+        district_desc = """
+Corrects 150+ district name variations including case inconsistencies, spelling errors, 
+and administrative changes. Critical for accurate district-level analysis:
+        """
+        story.append(Paragraph(district_desc, styles['BodyJustified']))
+        story.append(Spacer(1, 0.06*inch))
+
+        district_code = '''def standardize_district_names(df):
+    """Comprehensive district name standardization - handles 150+ variations"""
+    
+    DISTRICT_NAME_MAPPING = {
+        # Andhra Pradesh
+        'Ananthapur': 'Anantapur',
+        'Ananthapuramu': 'Anantapur',
+        'Visakhapatanam': 'Visakhapatnam',
+        
+        # Bihar
+        'Aurangabad(BH)': 'Aurangabad',
+        'Pashchim Champaran': 'West Champaran',
+        'Purba Champaran': 'East Champaran',
+        'Purnia': 'Purnea',
+        
+        # Gujarat
+        'Ahmedabad': 'Ahmadabad',
+        'Banaskantha': 'Banas Kantha',
+        'Panchmahals': 'Panch Mahals',
+        
+        # Karnataka
+        'Chamarajanagar *': 'Chamarajanagar',
+        'Chamrajanagar': 'Chamarajanagar',
+        'Chikkamagaluru': 'Chickmagalur',
+        'Shivamogga': 'Shimoga',
+        'Tumkur': 'Tumakuru',
+        
+        # Odisha
+        'ANGUL': 'Angul', 'ANUGUL': 'Angul',
+        'Baleswar': 'Baleshwar',
+        'Jajapur': 'Jajpur', 'jajpur': 'Jajpur',
+        'Khordha': 'Khorda',
+        'Sundergarh': 'Sundargarh',
+        
+        # West Bengal (most complex)
+        'Bardhaman': 'Barddhaman',
+        'Coochbehar': 'Cooch Behar',
+        'Darjiling': 'Darjeeling',
+        'East Midnapur': 'East Midnapore',
+        'HOOGHLY': 'Hooghly', 'Hooghiy': 'Hooghly',
+        'HOWRAH': 'Howrah', 'Hawrah': 'Howrah',
+        'KOLKATA': 'Kolkata',
+        'MALDA': 'Malda', 'Maldah': 'Malda',
+        'South 24 Pargana': 'South 24 Parganas',
+        'Puruliya': 'Purulia',
+        
+        # Medinipur district split
+        'Medinipur West': 'Paschim Medinipur',
+        'West Midnapore': 'Paschim Medinipur',
+        'East Midnapore': 'Purba Medinipur',
+        
+        # Sikkim direction-only names
+        'East': 'East Sikkim',
+        'West': 'West Sikkim',
+        'North': 'North Sikkim',
+        'South': 'South Sikkim',
+        
+        # ... (150+ total mappings across all states)
+    }
+    
+    # Apply standardization
+    df['district'] = df['district'].replace(DISTRICT_NAME_MAPPING)
+    df['district'] = df['district'].str.strip()
+    
+    print(f"✓ Districts standardized: {df['district'].nunique()}")
+    
+    return df
+        '''
+
+        story.append(Preformatted(district_code, code_style))
+        story.append(Spacer(1, 0.12*inch))
+
+
+
         # B.3 Dataset Merging
         snippet_heading = Paragraph("B.3 Three-Dataset Merging with UE Ratio Calculation (src/02_data_cleaning.py)", 
                                     styles['SubsectionHeading'])
@@ -1620,42 +1888,75 @@ def standardize_state_names(df):
         story.append(Spacer(1, 0.06*inch))
     
         merge_code = '''def merge_datasets(df_enrollment, df_biometric, df_demographic):
-        """Merge all three datasets on date, state, district, pincode"""
+    """Merge all three datasets on date, state, district, pincode"""
     
-    # Calculate total enrollments and updates
-    df_enroll['total_enrollment'] = (
-        df_enroll['age_0_5'] + 
-        df_enroll['age_5_17'] + 
-        df_enroll['age_18_greater']
-    )
+    # Step 1: Aggregate duplicates in each dataset
+    # (Same date-state-district-pincode = multiple transactions, must sum)
     
-    df_bio['total_biometric_updates'] = (
-        df_bio['bio_age_5_17'] + df_bio['bio_age_17_']
-    )
+    print("Aggregating enrollment duplicates...")
+    df_enroll_agg = df_enrollment.groupby(
+        ['date', 'state', 'district', 'pincode']
+    ).agg({
+        'age_0_5': 'sum',
+        'age_5_17': 'sum',
+        'age_18_greater': 'sum'
+    }).reset_index()
     
-    df_demo['total_demographic_updates'] = (
-        df_demo['demo_age_5_17'] + df_demo['demo_age_17_']
-    )
+    print("Aggregating biometric duplicates...")
+    df_bio_agg = df_biometric.groupby(
+        ['date', 'state', 'district', 'pincode']
+    ).agg({
+        'bio_age_5_17': 'sum',
+        'bio_age_17_': 'sum'
+    }).reset_index()
     
-    # Merge enrollment + biometric (outer join)
+    print("Aggregating demographic duplicates...")
+    df_demo_agg = df_demographic.groupby(
+        ['date', 'state', 'district', 'pincode']
+    ).agg({
+        'demo_age_5_17': 'sum',
+        'demo_age_17_': 'sum'
+    }).reset_index()
+    
+    print(f"  Enrollment: {len(df_enrollment):,} → {len(df_enroll_agg):,} "
+          f"({len(df_enrollment)-len(df_enroll_agg):,} duplicates removed)")
+    print(f"  Biometric: {len(df_biometric):,} → {len(df_bio_agg):,} "
+          f"({len(df_biometric)-len(df_bio_agg):,} duplicates removed)")
+    print(f"  Demographic: {len(df_demographic):,} → {len(df_demo_agg):,} "
+          f"({len(df_demographic)-len(df_demo_agg):,} duplicates removed)")
+    
+    # Step 2: Merge aggregated datasets
     df_merged = pd.merge(
-        df_enroll, df_bio,
+        df_enroll_agg, df_bio_agg,
         on=['date', 'state', 'district', 'pincode'],
         how='outer'
     )
     
-    # Merge + demographic
     df_merged = pd.merge(
-        df_merged, df_demo,
+        df_merged, df_demo_agg,
         on=['date', 'state', 'district', 'pincode'],
         how='outer'
     )
     
-    # Fill NaN values with 0
+    # Step 3: Fill NaN with 0 (from outer join)
     numeric_cols = df_merged.select_dtypes(include=[np.number]).columns
     df_merged[numeric_cols] = df_merged[numeric_cols].fillna(0)
     
-    # Calculate total updates and UE Ratio
+    # Step 4: Calculate totals AFTER merge (from raw columns)
+    df_merged['total_enrollment'] = (
+        df_merged['age_0_5'] + 
+        df_merged['age_5_17'] + 
+        df_merged['age_18_greater']
+    )
+    
+    df_merged['total_biometric_updates'] = (
+        df_merged['bio_age_5_17'] + df_merged['bio_age_17_']
+    )
+    
+    df_merged['total_demographic_updates'] = (
+        df_merged['demo_age_5_17'] + df_merged['demo_age_17_']
+    )
+    
     df_merged['total_updates'] = (
         df_merged['total_biometric_updates'] + 
         df_merged['total_demographic_updates']
@@ -1666,6 +1967,11 @@ def standardize_state_names(df):
         df_merged['total_updates'] / df_merged['total_enrollment'],
         0
     )
+    
+    print(f"✓ Final merged dataset: {len(df_merged):,} records")
+    print(f"✓ Total enrollments: {df_merged['total_enrollment'].sum():,.0f}")
+    print(f"✓ Total updates: {df_merged['total_updates'].sum():,.0f}")
+    print(f"✓ National UE Ratio: {df_merged['total_updates'].sum() / df_merged['total_enrollment'].sum():.2f}")
     
     return df_merged
         '''
@@ -1807,13 +2113,22 @@ def standardize_state_names(df):
         0
     )
     
-    # Classify readiness categories
-    district_agg['readiness_category'] = pd.cut(
-        district_agg['readiness_score'],
-        bins=[0, CRITICAL_READINESS, MODERATE_READINESS, 
-              GOOD_READINESS, 100],
-        labels=['Critical', 'Low', 'Moderate', 'Good']
-    )
+    # Classify readiness categories (handles edge case)
+    if MODERATE_READINESS == CRITICAL_READINESS:
+        # Use 3 categories when thresholds overlap
+        district_agg['readiness_category'] = pd.cut(
+            district_agg['readiness_score'],
+            bins=[0, CRITICAL_READINESS, GOOD_READINESS, 100],
+            labels=['Critical', 'Moderate', 'Good']
+        )
+    else:
+        # Use 4 categories when thresholds are distinct
+        district_agg['readiness_category'] = pd.cut(
+            district_agg['readiness_score'],
+            bins=[0, CRITICAL_READINESS, MODERATE_READINESS, 
+                  GOOD_READINESS, 100],
+            labels=['Critical', 'Low', 'Moderate', 'Good']
+        )
     
     print(f"National youth bio %: "
           f"{(district_agg['bio_age_5_17'].sum() / "
@@ -1837,41 +2152,51 @@ def standardize_state_names(df):
         story.append(Spacer(1, 0.06*inch))
     
         prediction_code = '''def predict_authentication_failures(district_agg):
-    """Predict future authentication failures based on readiness scores"""
+    """Identify at-risk districts based on readiness scores"""
     
     total_youth_enrollments = district_agg['age_5_17'].sum()
     total_youth_bio = district_agg['bio_age_5_17'].sum()
     
-    # Age distribution: each single age (5-17) has ~1/13 of total
-    # Age 17 youth = 1/13 of total 5-17 population
-    age_17_population = total_youth_enrollments / 13
-    
-    # Youth bio update rate
-    youth_update_rate = (
-        total_youth_bio / total_youth_enrollments 
-        if total_youth_enrollments > 0 else 0
+    # National benchmarks
+    national_youth_bio_pct = (
+        (total_youth_bio / district_agg['total_bio_updates'].sum()) * 100
     )
+    national_median = district_agg['readiness_score'].median()
     
-    # Predict: How many age 17 will turn 18 without biometric update?
-    predicted_failures = age_17_population * (1 - youth_update_rate)
-    
-    print(f"Prediction Model:")
+    print(f"National Benchmarks:")
     print(f"  Total youth (5-17): {total_youth_enrollments:,.0f}")
-    print(f"  Estimated age 17 pop: {age_17_population:,.0f}")
-    print(f"  Youth update rate: {youth_update_rate:.1%}")
-    print(f"  Predicted failures (annual): {predicted_failures:,.0f}")
+    print(f"  Youth % of bio updates: {national_youth_bio_pct:.1f}%")
+    print(f"  National median readiness: {national_median:.1f}%")
     
-    # District-level predictions
-    district_agg['predicted_failures_per_year'] = (
-        (district_agg['age_5_17'] / 13) * (1 - (district_agg['bio_age_5_17'] / district_agg['age_5_17']))
+    # Calculate readiness gap for each district
+    district_agg['readiness_gap'] = np.maximum(
+        0,
+        national_median - district_agg['readiness_score']
     )
     
-    # Identify high-risk districts
+    # Estimate youth at risk
+    # Gap indicates proportion of youth who may not be updating
+    district_agg['estimated_at_risk_youth'] = (
+        district_agg['age_5_17'] * (district_agg['readiness_gap'] / 100)
+    ).round(0).astype(int)
+    
+    # Total estimated at-risk youth nationally
+    total_at_risk = district_agg['estimated_at_risk_youth'].sum()
+    
+    print(f"\n  Risk Assessment:")
+    print(f"  Districts below median: "
+          f"{len(district_agg[district_agg['readiness_gap'] > 0])}")
+    print(f"  Estimated at-risk youth: {total_at_risk:,.0f}")
+    
+    # High-risk districts (below critical threshold)
     high_risk = district_agg[
         district_agg['readiness_score'] < CRITICAL_READINESS
-    ].sort_values('predicted_failures_per_year', ascending=False)
+    ].sort_values('estimated_at_risk_youth', ascending=False)
     
-    return district_agg, predicted_failures, high_risk'''
+    print(f"\n  High-Risk Districts (< {CRITICAL_READINESS}%): "
+          f"{len(high_risk)}")
+    
+    return district_agg, total_at_risk, high_risk'''
     
         story.append(Preformatted(prediction_code, code_style))
         story.append(Spacer(1, 0.12*inch))
@@ -1891,6 +2216,7 @@ def standardize_state_names(df):
     
         anomaly_code = '''def detect_ue_ratio_anomalies(df):
         """Detect pincodes with anomalously high UE ratios - multi-layered"""
+        from scipy import stats  # Required for z-score calculation
     
     # Aggregate at pincode level
     pincode_agg = df.groupby('pincode').agg({
@@ -1963,7 +2289,7 @@ def standardize_state_names(df):
         story.append(Spacer(1, 0.06*inch))
     
         risk_code = '''def calculate_composite_risk_score(pincode_agg, extreme_ue, high_ue, 
-                                                   age_anomalies, frequent_spikes):
+                                   age_anomalies, frequent_spikes):
     """
     Calculate composite risk score for each pincode
     Weighted scoring: 0-12 points across 4 anomaly types
@@ -1973,33 +2299,35 @@ def standardize_state_names(df):
                            'ue_ratio', 'total_enrollment']].copy()
     risk_df['risk_score'] = 0
     
+    # Initialize boolean columns FIRST (prevents errors)
+    risk_df['has_extreme_ue'] = False
+    risk_df['has_high_ue'] = False
+    risk_df['has_age_anomaly'] = False
+    risk_df['has_temporal_spike'] = False
+    
     # Layer 1: Extreme UE ratio (>100) = +5 points
     if len(extreme_ue) > 0:
-        risk_df.loc[
-            risk_df['pincode'].isin(extreme_ue['pincode']), 
-            'risk_score'
-        ] += 5
+        mask = risk_df['pincode'].isin(extreme_ue['pincode'])
+        risk_df.loc[mask, 'risk_score'] += 5
+        risk_df.loc[mask, 'has_extreme_ue'] = True
     
     # Layer 2: High UE ratio (>25) = +3 points
     if len(high_ue) > 0:
-        risk_df.loc[
-            risk_df['pincode'].isin(high_ue['pincode']), 
-            'risk_score'
-        ] += 3
+        mask = risk_df['pincode'].isin(high_ue['pincode'])
+        risk_df.loc[mask, 'risk_score'] += 3
+        risk_df.loc[mask, 'has_high_ue'] = True
     
     # Layer 3: Age concentration anomaly (>80% in one group) = +2 points
     if len(age_anomalies) > 0:
-        risk_df.loc[
-            risk_df['pincode'].isin(age_anomalies['pincode']), 
-            'risk_score'
-        ] += 2
+        mask = risk_df['pincode'].isin(age_anomalies['pincode'])
+        risk_df.loc[mask, 'risk_score'] += 2
+        risk_df.loc[mask, 'has_age_anomaly'] = True
     
     # Layer 4: Frequent temporal spikes (>3 spikes) = +2 points
     if len(frequent_spikes) > 0:
-        risk_df.loc[
-            risk_df['pincode'].isin(frequent_spikes['pincode']), 
-            'risk_score'
-        ] += 2
+        mask = risk_df['pincode'].isin(frequent_spikes['pincode'])
+        risk_df.loc[mask, 'risk_score'] += 2
+        risk_df.loc[mask, 'has_temporal_spike'] = True
     
     # Filter to only anomalous pincodes (score > 0)
     anomalous_pincodes = risk_df[risk_df['risk_score'] > 0].copy()
@@ -2016,15 +2344,18 @@ def standardize_state_names(df):
         'risk_score', ascending=False
     )
     
+    print(f"Anomalous Pincodes: {len(anomalous_pincodes):,}")
     print(f"Risk Level Distribution:")
     for level in ['Critical', 'High', 'Medium', 'Low']:
         count = len(anomalous_pincodes[
             anomalous_pincodes['risk_level'] == level
         ])
-        pct = (count / len(anomalous_pincodes)) * 100
+        pct = (count / len(anomalous_pincodes)) * 100 if len(anomalous_pincodes) > 0 else 0
         print(f"  {level}: {count} ({pct:.1f}%)")
     
     return anomalous_pincodes'''
+        
+        
     
         story.append(Preformatted(risk_code, code_style))
         story.append(Spacer(1, 0.12*inch))
@@ -2047,12 +2378,16 @@ def standardize_state_names(df):
 
 # UE Ratio = Updates ÷ Enrollments
 # UIDAI does NOT define or publish this metric
-DERIVED_UE_RATIO_BASELINE = 12.6  # 28.3 ÷ 2.24
+# UPDATED: Based on 2025 calendar year data (119.06M updates / 5.44M enrollments)
+DERIVED_UE_RATIO_BASELINE = 21.90  # Corrected after deduplication
 NATIONAL_UE_RATIO = DERIVED_UE_RATIO_BASELINE
 
-HIGH_UE_RATIO = 18.0
-LOW_UE_RATIO = 4.0
-ANOMALY_UE_RATIO = 25.0
+# Note: District-level averages differ due to size weighting
+# Average District UE: 27.70 (unweighted arithmetic mean)
+# Median District UE: 23.62 (50th percentile, robust to outliers)
+
+HIGH_UE_RATIO = 25.0   
+ANOMALY_UE_RATIO = 40.0  
 
 # =================================================================
 # TRANSITION READINESS SCORE (SINGLE SOURCE OF TRUTH)
@@ -2121,7 +2456,7 @@ COLOR_SCHEME = {
     'low': '#388e3c',
     'neutral': '#757575',
     'good': '#4caf50'
-    }'''
+}'''
     
         story.append(Preformatted(helper_code, code_style))
         story.append(Spacer(1, 0.15*inch))
@@ -2217,28 +2552,28 @@ COLOR_SCHEME = {
 
         # --- TABLE DATA (Combined General + Dimension Metrics) ---
         validation_data = [
-            # Header Row
-            ['Metric', 'Validation Output', 'Reported in PDF', 'Page(s)'],
-            
-            # General Metrics
-            ['States', '36', '36', '2'],
-            ['Districts', '1,028', '1,028', '2'],
-            ['Pincodes', '19,814', '19,814', '2'],
-            ['Merged Records', '2,963,994', '2.96M', '2, 7'],
-            ['Total Enrollments', '6,703,112', '6.7M', '2, 12'],
-            ['Total Biometric Updates', '81,359,177', '81.36M', '7, 12'],
-            ['Total Demographic Updates', '51,432,273', '51.43M', '7, 12'],
-            ['Total Updates', '132,791,450', '132.8M', '2, 12'],
-            ['National UE Ratio', '19.81', '19.81', '2, 12'],
-            ['Child Enrollment (0–17)', '97.1%', '97.1%', '12–13'],
-            
-            # Dimension Specific Metrics (Merged here as requested)
-            ['Coverage Gap Districts', '53', '53', '12, 14'],
-            ['Crisis Zone Districts', '472', '472', '14'],
-            ['Critical Readiness Districts', '27', '27', '12, 15'],
-            ['Low Readiness Districts', '22', '22', '12, 15'],
-            ['Anomalous Pincodes', '6,956', '6,956', '16'],
-            ['Critical + High Risk Pincodes', '32', '32', '12, 16']
+    # Header Row
+    ['Metric', 'Validation Output', 'Reported in PDF', 'Page(s)'],
+    
+    # General Metrics
+    ['States', '36', '36', '2'],
+    ['Districts', '865', '888*', '2'],
+    ['Pincodes', '19,814', '19,814', '2'],
+    ['Merged Records', '2,187,722', '2.19M', '2, 7'],
+    ['Total Enrollments', '5,435,484', '5.44M', '2, 12'],
+    ['Total Biometric Updates', '69,763,095', '69.76M', '7, 12'],
+    ['Total Demographic Updates', '49,295,185', '49.30M', '7, 12'],
+    ['Total Updates', '119,058,280', '119.06M', '2, 12'],
+    ['National UE Ratio', '21.90', '21.9×', '2, 12'],
+    ['Child Enrollment (0–17)', '96.9%', '96.9%', '12–13'],
+    
+    # Dimension Specific Metrics
+    ['Coverage Gap Districts', '57', '57', '12, 14'],
+    ['Crisis Zone Districts', '387', '387', '14'],
+    ['Critical Readiness Districts', '12', '12', '12, 15'],
+    ['Low Readiness Districts', '12', '12', '12, 15'],
+    ['Anomalous Pincodes', '4,628', '4,628', '16'],
+    ['Critical + High Risk Pincodes', '48', '48', '12, 16']
         ]
 
         # --- TABLE CREATION & STYLING ---
@@ -2275,7 +2610,11 @@ COLOR_SCHEME = {
         story.append(Spacer(1, 0.05*inch))
         
         note = Paragraph(
-            "<i>* All values match exactly or differ only due to rounding for presentation.</i>",
+            "<i>* All values match exactly or differ only due to rounding for presentation.<br/>"
+    "** Districts: 888 state-district combinations representing 865 unique district names. "
+    "Some pincodes serve areas across state/district boundaries (e.g., pincode 160003 serves both "
+    "Chandigarh-Chandigarh and Punjab-Mohali), creating legitimate geographic complexity that "
+    "preserves spatial accuracy without information loss.</i>",
             styles['BodyJustified']
         )
         story.append(note)
@@ -2421,10 +2760,11 @@ COLOR_SCHEME = {
         row1_caps = [Paragraph("<b>Fig D7:</b> Category Dist.", styles['Caption']),
                      Paragraph("<b>Fig D8:</b> Score Dist.", styles['Caption'])]
         
+        # D.2.2 Dimension 2 - Readiness Gap grid
         row2_imgs = [get_image_element("dim2_state_readiness.png"), 
-                     get_image_element("dim2_time_bomb_chart.png")]
+                    get_image_element("dim2_high_risk_districts.png")]
         row2_caps = [Paragraph("<b>Fig D9:</b> State Readiness", styles['Caption']),
-                     Paragraph("<b>Fig D10:</b> Time-Bomb Chart", styles['Caption'])]
+                    Paragraph("<b>Fig D10:</b> High-Risk Districts", styles['Caption'])]
 
         grid_d3 = Table(
             [row1_imgs, row1_caps, row2_imgs, row2_caps],
@@ -2485,26 +2825,23 @@ COLOR_SCHEME = {
 
         # Table Data - Updated with all new tables
         table_data = [
-            ['Dimension', 'Description', 'File Name', 'Records'],
-            # Dimension 1: Coverage Gap
-            ['Coverage Gap', 'Coverage gap districts', 'dim1_coverage_gap_districts.csv', '53'],
-            ['Coverage Gap', 'Low child enrollment districts', 'dim1_low_child_enrollment_districts.csv', 'Varies'],
-            ['Coverage Gap', 'All crisis zone districts', 'dim1_crisis_zone_districts.csv', '472'],
-            ['Coverage Gap', 'Top 10 Crisis Zone (Priority)', 'dim1_top10_crisis_zone_districts.csv', '10'],
-            
-            # Dimension 2: Readiness Gap
-            ['Readiness Gap', 'Critical readiness districts', 'dim2_critical_readiness_districts.csv', '27'],
-            ['Readiness Gap', 'Low readiness districts', 'dim2_low_readiness_districts.csv', '22'],
-            ['Readiness Gap', 'All at-risk (Low+Critical)', 'dim2_all_at_risk_districts.csv', '49'],
-            ['Readiness Gap', 'Top 10 At-Risk (Priority)', 'dim2_top10_at_risk_districts.csv', '<10'],
-            ['Readiness Gap', 'State readiness ranking', 'dim2_state_readiness_ranking.csv', '36'],
-            
-            # Dimension 3: Integrity Gap
-            ['Integrity Gap', 'All anomalous pincodes', 'dim3_all_anomalous_pincodes.csv', '6,956'],
-            ['Integrity Gap', 'All critical risk pincodes', 'dim3_all_critical_risk_pincodes.csv', '17'],
-            ['Integrity Gap', 'Top 10 Critical Risk (Priority)', 'dim3_top10_critical_risk_pincodes.csv', '10'],
-            ['Integrity Gap', 'High risk pincodes', 'dim3_high_risk_pincodes.csv', '15'],
-            ['Integrity Gap', 'Clustered districts', 'dim3_clustered_districts.csv', 'Varies']
+    ['Dimension', 'Description', 'File Name', 'Records'],
+    ['Coverage Gap', 'Coverage gap districts', 'dim1_coverage_gap_districts.csv', '57'],
+    ['Coverage Gap', 'Low child enrollment districts', 'dim1_low_child_enrollment_districts.csv', '58'],
+    ['Coverage Gap', 'All crisis zone districts', 'dim1_crisis_zone_districts.csv', '387'],
+    ['Coverage Gap', 'Top 10 Crisis Zone (Priority)', 'dim1_top10_crisis_zone_districts.csv', '10'],
+    
+    ['Readiness Gap', 'Critical readiness districts', 'dim2_critical_readiness_districts.csv', '12'],
+    ['Readiness Gap', 'Low readiness districts', 'dim2_low_readiness_districts.csv', '12'],
+    ['Readiness Gap', 'All at-risk (Low+Critical)', 'dim2_all_at_risk_districts.csv', '24'],
+    ['Readiness Gap', 'Top 10 At-Risk (Priority)', 'dim2_top10_at_risk_districts.csv', '10'],
+    ['Readiness Gap', 'State readiness ranking', 'dim2_state_readiness_ranking.csv', '36'],
+    
+    ['Integrity Gap', 'All anomalous pincodes', 'dim3_all_anomalous_pincodes.csv', '4,628'],
+    ['Integrity Gap', 'All critical risk pincodes', 'dim3_all_critical_risk_pincodes.csv', '32'],
+    ['Integrity Gap', 'Top 10 Critical Risk (Priority)', 'dim3_top10_critical_risk_pincodes.csv', '10'],
+    ['Integrity Gap', 'High risk pincodes', 'dim3_high_risk_pincodes.csv', '16'],
+    ['Integrity Gap', 'Clustered districts', 'dim3_clustered_districts.csv', 'Varies']
         ]
 
         # Table Styling
