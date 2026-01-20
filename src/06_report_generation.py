@@ -67,7 +67,7 @@ class EnhancedAadhaarReport:
         
         self.report_path = os.path.join(
             self.output_dir, 
-            'UIDAI_Hackathon_Submission_ENHANCED.pdf'
+            'UIDAI_Hackathon_Submission.pdf'
         )
         
         # Create document with better margins
@@ -334,19 +334,19 @@ class EnhancedAadhaarReport:
         self.story.append(Spacer(1, 0.2*inch))
         
         toc_items = [
-            ("1. Problem Statement and Approach", "3"),
-            ("2. Datasets Used", "7"),
-            ("3. Methodology", "9"),
-            ("4. Data Analysis - Executive Summary", "12"),
-            ("5. Dimension 1: Coverage Gap Analysis", "13"),
-            ("6. Dimension 2: Readiness Gap Analysis", "15"),
-            ("7. Dimension 3: Integrity Gap Analysis", "16"),
-            ("8. Strategic Recommendations", "17"),
-            ("9. Conclusion", "18"),
-            ("Appendix A: Code Architecture", "19"),
-            ("Appendix B: Implementation Excerpts", "23"),
-            ("Appendix C: Validation Evidence", "34"),
-            ("Appendix D: Supplementary Figures", "40"),
+    ("1. Problem Statement and Approach", "4"),
+    ("2. Datasets Used", "7"),
+    ("3. Methodology", "10"),
+    ("4. Data Analysis - Executive Summary", "14"),
+    ("5. Dimension 1: Coverage Gap Analysis", "15"),
+    ("6. Dimension 2: Readiness Gap Analysis", "19"),
+    ("7. Dimension 3: Integrity Gap Analysis", "21"),
+    ("8. Strategic Recommendations", "23"),
+    ("9. Conclusion", "24"),
+    ("Appendix A: Code Architecture", "25"),
+    ("Appendix B: Implementation Excerpts", "29"),
+    ("Appendix C: Validation Evidence", "43"),
+    ("Appendix D: Supplementary Figures", "45"),
         ]
         
         toc_data = []
@@ -882,7 +882,7 @@ class EnhancedAadhaarReport:
      "while the median is 23.62."),
     
     ("<b>Coverage Gaps Persist:</b> 57 districts (6.4% of 888 state-district combinations) exhibit "
-     "'Saturation/Coverage Gap' patterns—high updates but stagnant enrollments—indicating exclusion of "
+     "'Saturation/Coverage Gap' patterns-high updates but stagnant enrollments-indicating exclusion of "
      "marginalized populations."),
     
     ("<b>Youth Readiness Success:</b> 84.8% of districts (753 of 888) achieve 'Good' readiness (≥30% youth bio "
@@ -1081,7 +1081,7 @@ class EnhancedAadhaarReport:
         cols_d1 = {'state': 'State', 'district': 'Zone Name'}
         
         explanation_d1 = (
-            "Priority Intervention List: The table above identifies the 'Crisis Zones'—districts "
+            "Priority Intervention List: The table above identifies the 'Crisis Zones'- districts "
             "showing the lowest levels of both new enrollments and update activity. These areas are "
             "likely stagnant and require immediate field outreach to restart engagement."
         )
@@ -1320,8 +1320,8 @@ class EnhancedAadhaarReport:
         quality investigation (32 critical + 16 high risk).<br/><br/>
 
         Our three-dimensional framework provides UIDAI with a replicable diagnostic tool for precision interventions. 
-        The transition to universal coverage requires targeted action—mobile camps to 24 at-risk districts, enrollment 
-        drives to 57 coverage gap districts, audit of 48 high-priority pincodes—not mass campaigns. By analyzing 888 
+        The transition to universal coverage requires targeted action-mobile camps to 24 at-risk districts, enrollment 
+        drives to 57 coverage gap districts, audit of 48 high-priority pincodes-not mass campaigns. By analyzing 888 
         state-district combinations across 19,814 pincodes, these findings are actionable, geographically specific, 
         and resource-optimized for immediate deployment.
         """
@@ -1505,7 +1505,7 @@ aadhaar_analysis/
             ['Script', 'Primary Responsibility'],
             ['00_data_quality_check.py', 'Initial integrity checks on raw UIDAI datasets'],
             ['01_data_loading.py', 'Data ingestion and schema validation (12 CSV files)'],
-            ['02_data_cleaning.py', 'State & district standardization (36 states, 888 combinations), duplicate aggregation, merging'],
+            ['02_data_cleaning.py', 'Geographic standardization and deduplicated dataset merging'],
             ['03_dimension1_coverage.py', 'Coverage Gap: UE ratios, 2×2 matrix, child enrollment'],
             ['04_dimension2_readiness.py', 'Readiness Gap: Youth biometric compliance, risk prediction'],
             ['05_dimension3_integrity.py', 'Integrity Gap: Multi-layered anomaly detection (0-12 scoring)'],
@@ -1550,10 +1550,12 @@ aadhaar_analysis/
         story.append(Spacer(1, 0.1*inch))
     
         github_note = """
-        <b>Code Availability:</b> As specified in the guidelines, shortlisted teams may be requested to submit
-        the full code repository separately. In such a case, the complete project will be shared via
-        GitHub with setup instructions, dependency management (requirements.txt), and execution
-        documentation.
+        <b>Code Availability:</b> The complete, fully documented source code for this analytical pipeline is available at:  
+        https://github.com/AtharvSabde/UIDAI_hackathon
+
+        This repository includes end-to-end data processing scripts, analytical modules, 
+        validation tests, and PDF report generation code. Access is provided for optional 
+        technical review and reproducibility verification.
         """
         story.append(Paragraph(github_note, styles['BodyJustified']))
     
@@ -1574,12 +1576,10 @@ aadhaar_analysis/
         story.append(Spacer(1, 0.15*inch))
     
         intro_text = """
-        Given the extensive scale of this analytical pipeline (spanning over 6,000 lines across 8 modular scripts), 
-        it is impractical to reproduce the entire codebase within this report. This appendix therefore presents 
-        a curated selection of the core algorithms and critical logic that underpin the analysis. 
-        
-        The complete, fully documented source code—including comprehensive error handling and validation frameworks—will 
-        be shared via a GitHub repository upon shortlisting, in strict accordance with the hackathon guidelines.
+        The complete, fully documented source code for this analytical pipeline is available 
+via a public GitHub repository for technical review.(https://github.com/AtharvSabde/UIDAI_hackathon)
+ In accordance with the hackathon guidelines, only selected implementation excerpts are included here to 
+maintain report conciseness.
         """
         story.append(Paragraph(intro_text, styles['BodyJustified']))
         story.append(Spacer(1, 0.12*inch))
@@ -1987,7 +1987,7 @@ and administrative changes. Critical for accurate district-level analysis:
     
         matrix_desc = """
         Classifies districts into four quadrants based on enrollment and update activity relative to median 
-        thresholds—core innovation for identifying the "Update Paradox":
+        thresholds-core innovation for identifying the "Update Paradox":
         """
         story.append(Paragraph(matrix_desc, styles['BodyJustified']))
         story.append(Spacer(1, 0.06*inch))
@@ -2153,50 +2153,44 @@ and administrative changes. Critical for accurate district-level analysis:
     
         prediction_code = '''def predict_authentication_failures(district_agg):
     """Identify at-risk districts based on readiness scores"""
-    
+
     total_youth_enrollments = district_agg['age_5_17'].sum()
     total_youth_bio = district_agg['bio_age_5_17'].sum()
-    
-    # National benchmarks
+    total_bio_updates = district_agg['total_bio_updates'].sum()
+
+    # National benchmarks (descriptive only)
     national_youth_bio_pct = (
-        (total_youth_bio / district_agg['total_bio_updates'].sum()) * 100
+        (total_youth_bio / total_bio_updates) * 100
+        if total_bio_updates > 0 else 0
     )
-    national_median = district_agg['readiness_score'].median()
-    
-    print(f"National Benchmarks:")
+
+    print("National Benchmarks:")
     print(f"  Total youth (5-17): {total_youth_enrollments:,.0f}")
     print(f"  Youth % of bio updates: {national_youth_bio_pct:.1f}%")
-    print(f"  National median readiness: {national_median:.1f}%")
-    
-    # Calculate readiness gap for each district
-    district_agg['readiness_gap'] = np.maximum(
-        0,
-        national_median - district_agg['readiness_score']
-    )
-    
-    # Estimate youth at risk
-    # Gap indicates proportion of youth who may not be updating
+
+    # Absolute readiness gap (PDF-aligned model)
+    # Proportion of enrolled youth who have NOT completed biometric updates
+    district_agg['readiness_gap'] = 100 - district_agg['readiness_score']
+
     district_agg['estimated_at_risk_youth'] = (
         district_agg['age_5_17'] * (district_agg['readiness_gap'] / 100)
     ).round(0).astype(int)
-    
+
     # Total estimated at-risk youth nationally
     total_at_risk = district_agg['estimated_at_risk_youth'].sum()
-    
-    print(f"\n  Risk Assessment:")
-    print(f"  Districts below median: "
-          f"{len(district_agg[district_agg['readiness_gap'] > 0])}")
-    print(f"  Estimated at-risk youth: {total_at_risk:,.0f}")
-    
-    # High-risk districts (below critical threshold)
+
+    print("\nRisk Assessment:")
+    print(f"  Estimated at-risk youth (national): {total_at_risk:,.0f}")
+
+    # High-risk districts (below critical readiness threshold)
     high_risk = district_agg[
         district_agg['readiness_score'] < CRITICAL_READINESS
     ].sort_values('estimated_at_risk_youth', ascending=False)
-    
-    print(f"\n  High-Risk Districts (< {CRITICAL_READINESS}%): "
-          f"{len(high_risk)}")
-    
-    return district_agg, total_at_risk, high_risk'''
+
+    print(f"\nHigh-Risk Districts (< {CRITICAL_READINESS}%): {len(high_risk)}")
+
+    return district_agg, total_at_risk, high_risk
+'''
     
         story.append(Preformatted(prediction_code, code_style))
         story.append(Spacer(1, 0.12*inch))
@@ -2464,12 +2458,14 @@ COLOR_SCHEME = {
         # Closing note
         closing_note = """
         <b>Note:</b> In accordance with the UIDAI Hackathon submission guidelines, this consolidated PDF includes
-        detailed methodology, analysis, visualisations, and selected code excerpts necessary to understand the 
-        implementation. The complete codebase (~6,000 lines) follows PEP 8 guidelines and includes comprehensive 
-        error handling, input validation, and documentation.
-        As specified in the guidelines, shortlisted teams may be requested to submit the full code repository separately.
-        In such a case, the complete project will be shared via GitHub with setup instructions, dependency management
-        (requirements.txt), and execution documentation.
+detailed methodology, analysis, visualisations, and selected code excerpts necessary to understand the
+implementation. The complete codebase (~6,000 lines) follows PEP 8 guidelines and includes comprehensive
+error handling, input validation, and documentation.
+
+For  technical review and reproducibility verification, the full source code is available via a
+public GitHub repository (https://github.com/AtharvSabde/UIDAI_hackathon). The repository contains end-to-end data processing scripts, analytical modules,
+programmatic validation tests, and automated PDF report generation code, along with setup instructions,
+dependency management (requirements.txt), and execution documentation.
         """
         story.append(Paragraph(closing_note, styles['BodyJustified']))
     
@@ -2557,7 +2553,7 @@ COLOR_SCHEME = {
     
     # General Metrics
     ['States', '36', '36', '2'],
-    ['Districts', '865', '888*', '2'],
+    ['Districts', '865', '888*', '2, 8'],
     ['Pincodes', '19,814', '19,814', '2'],
     ['Merged Records', '2,187,722', '2.19M', '2, 7'],
     ['Total Enrollments', '5,435,484', '5.44M', '2, 12'],
@@ -2569,7 +2565,7 @@ COLOR_SCHEME = {
     
     # Dimension Specific Metrics
     ['Coverage Gap Districts', '57', '57', '12, 14'],
-    ['Crisis Zone Districts', '387', '387', '14'],
+    ['Crisis Zone Districts', '387', '387', '14, 17'],
     ['Critical Readiness Districts', '12', '12', '12, 15'],
     ['Low Readiness Districts', '12', '12', '12, 15'],
     ['Anomalous Pincodes', '4,628', '4,628', '16'],
